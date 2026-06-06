@@ -4,25 +4,24 @@
 
 ## 📌 Overview
 
-Sleep is among the strongest predictors of long-term health, yet what shapes how much of it people get is poorly understood. This project asks a focused version of that question: Does age affect how long people sleep? It draws on weekday sleep data from the CDC's National Health and Nutrition Examination Survey (NHANES).
+Sleep is vital to mental and physical health, yet how it changes with age is genuinely debated: some studies find that sleep declines steadily as people get older, while others point to more complex patterns. This project tests that relationship directly. Does age affect how long adults sleep? It draws on weekday sleep data from the CDC's National Health and Nutrition Examination Survey (NHANES).
 
 ## 🎯 Project Goals
 
-- Test whether age has a measurable effect on sleep duration
-- Compare a simple demographic model against a fuller one that adds physical activity
-- Check the relationship for non-linearity rather than assuming a straight line
-- Validate every regression assumption instead of trusting the coefficients alone
-- Report the outcome honestly, including where the model falls short
+- Determine whether age is related to how long adults sleep, testing the hypothesis that it has no effect
+- Account for other factors that may shape sleep, including physical activity, gender, and poverty level
+- Begin with linear regression as a baseline and move to more flexible models if the relationship proves non-linear
+- Inform healthcare and sleep-hygiene recommendations across adult age groups
 
 ## 🗂️ Dataset
 
 | Source | Description |
 | --- | --- |
-| [CDC NHANES, 2021–2023 cycle](https://wwwn.cdc.gov/nchs/nhanes/continuousnhanes/default.aspx?Cycle=2021-2023) | Self-reported weekday sleep hours alongside demographic, socioeconomic, and physical-activity measures from a large U.S. health survey (collected August 2021 to August 2023). |
+| [CDC NHANES, 2021-2023 cycle](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Questionnaire&Cycle=2021-2023) | Self-reported weekday sleep hours alongside demographic, socioeconomic, and physical-activity measures from a large U.S. health survey (collected August 2021 to August 2023). |
 
 - **Outcome:** weekday sleep hours
 - **Predictors:** age, gender, income-to-poverty ratio, weekly leisure-time physical activity (LTPA)
-- **Sample:** 2,991 respondents after removing incomplete records and engineering the activity variables
+- **Sample:** 2,991 respondents, after keeping only people who reported their moderate physical activity at a daily level and dropping records with missing values
 
 ## 🚀 Implementation Details
 
@@ -33,7 +32,7 @@ We approached the question with a **null hypothesis**: we assumed age has *no* e
 - Coded gender and the income-to-poverty ratio as binary variables
 - Engineered weekly totals for moderate and vigorous leisure-time activity
 - Log-transformed the highly skewed activity measure
-- Dropped records with missing values, leaving 2,991 respondents
+- Kept only respondents who reported moderate physical activity at a daily level, then dropped remaining records with missing values, leaving 2,991 respondents
 
 ### 🔹 Model Specification
 
