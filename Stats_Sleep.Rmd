@@ -1,0 +1,270 @@
+---
+title: "DS203-Lab2"
+output: pdf_document
+date: "2024-12-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data <- read.csv("Downloads/final_data.csv")
+head(data)
+
+```
+
+First create dummy variable for both Gender and Poverty_Index
+
+```{r}
+# Create dummy variables for Gender and Poverty_Index
+data$Gender_Male <- ifelse(data$RIAGENDR == 1, 1, 0)
+# male is 1, female is 2 so coded it to be male is 1, female is 0
+data$Poverty_Index_Binary <- ifelse(data$Poverty_Index > 2.5, 1, 0)
+# the index is above 2.5, then encode as 1. Otherwise, 0. 
+```
+# Simple Model - Variable Analysis
+First let's just assess the variables Age vs. Sleep. 
+
+```{r}
+
+# age histogram
+
+age_hist <- ggplot(data, aes(x = Age)) +
+  geom_histogram(bins = 20, fill = "skyblue", color = "black", alpha = 0.7) +
+  ggtitle("Histogram of Age") +
+  xlab("Age") +
+  ylab("Frequency")
+
+age_hist
+
+# sleep histogram 
+
+sleep_hist <- ggplot(data, aes(x = Sleep_Hours_Weekday)) +
+  geom_histogram(bins = 20, fill = "lightgreen", color = "black", alpha = 0.7) +
+  ggtitle("Histogram of Sleep Hours") +
+  xlab("Sleep Hours") +
+  ylab("Frequency")
+
+sleep_hist
+
+# joint relationship of age vs sleep
+
+agesleep_plot <- ggplot(data, aes(x = Age, y = Sleep_Hours_Weekday)) +
+  geom_point(alpha = 0.5) +
+  ggtitle("Age vs Sleep Hours") +
+  xlab("Age") +
+  ylab("Sleep Hours")
+
+agesleep_plot
+
+```
+ Let's perform a quadratic transformation to see if we can account for a non-linear relationship between Age and Sleep. 
+
+```{r}
+# Create a quadratic term for Age
+data$Age_Squared <- data$Age^2
+
+# Fit a linear regression model (Age as a predictor)
+model_linear_age <- lm(Sleep_Hours_Weekday ~ Age, data = data)
+
+# Fit a quadratic regression model (Age and Age^2 as predictors)
+model_quadratic_age <- lm(Sleep_Hours_Weekday ~ Age + Age_Squared, data = data)
+
+# Compare the models
+summary(model_linear_age)
+summary(model_quadratic_age)
+```
+
+While the quadratic model is statistically better, the overall explanatory power (2.1%) remains very low. This suggests that Age (even with non-linear terms) has a small impact on Sleep Hours.
+
+
+Visualize the relationship between Age and Sleep (linear and quadratic models)
+```{r}
+# Predictions from both models
+data$Predicted_Linear <- predict(model_linear_age, data)
+data$Predicted_Quadratic <- predict(model_quadratic_age, data)
+
+# Plot the actual data points and fitted lines
+library(ggplot2)
+
+ggplot(data, aes(x = Age, y = Sleep_Hours_Weekday)) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(y = Predicted_Linear), color = "blue", linetype = "dashed") +
+  geom_line(aes(y = Predicted_Quadratic), color = "red") +
+  ggtitle("Linear vs Quadratic Model: Age vs Sleep Hours") +
+  xlab("Age") +
+  ylab("Sleep Hours") +
+  theme_minimal()
+```
+quadratic model better fits the data but has limited explanatory power.
+
+
+
+let's evaluate Gender Variable: 
+Since Gender is a categorical variable (1 = Male, 0 = Female), use boxplots and summary statistics to explore differences in Sleep Hours.
+
+```{r}
+# Visualize the relationship using a boxplot
+library(ggplot2)
+ggplot(data, aes(x = factor(Gender_Male), y = Sleep_Hours_Weekday)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7) +
+  ggtitle("Boxplot of Gender vs Sleep Hours") +
+  xlab("Gender (0 = Female, 1 = Male)") +
+  ylab("Sleep Hours") +
+  theme_minimal()
+
+# Calculate summary statistics for each gender
+aggregate(Sleep_Hours_Weekday ~ Gender_Male, data = data, summary)
+```
+```{r}
+# Fit a linear model with Gender as the predictor
+model_gender <- lm(Sleep_Hours_Weekday ~ Gender_Male, data = data)
+
+# View the model summary
+summary(model_gender)
+```
+The median sleep hours for Males (Gender = 1) and Females (Gender = 0) appear very close, suggesting minimal differences.
+The interquartile range (IQR) and spread of the data are also similar between the two genders.
+There are no dramatic outliers specific to one gender, indicating that extreme sleep values are equally distributed.
+overall model is not statistically significant, further confirming that Gender is not a strong predictor of Sleep Hours.
+
+Analyze Poverty Index vs. Sleep. We will be treating this as a dummy variable with > 2.5 as High Poverty Index and less than that as low with 0 = Low and 1 = High. 
+
+```{r}
+# Visualize the relationship using a boxplot
+ggplot(data, aes(x = factor(Poverty_Index_Binary), y = Sleep_Hours_Weekday)) +
+  geom_boxplot(fill = "lightgreen", alpha = 0.7) +
+  ggtitle("Boxplot of Poverty Index vs Sleep Hours") +
+  xlab("Poverty Index (0 = Low, 1 = High)") +
+  ylab("Sleep Hours") +
+  theme_minimal()
+
+# Calculate summary statistics for each group
+aggregate(Sleep_Hours_Weekday ~ Poverty_Index_Binary, data = data, summary)
+
+```
+```{r}
+# Fit a linear model with Poverty Index as the predictor
+model_poverty <- lm(Sleep_Hours_Weekday ~ Poverty_Index_Binary, data = data)
+
+# View the model summary
+summary(model_poverty)
+```
+
+The Adjusted R-squared is extremely low, indicating that the Poverty Index does not meaningfully explain variance in Sleep Hours on its own.
+Include Poverty Index: The statistically significant p-value justifies including this variable in the overall model, especially since it could interact with other predictors (e.g., Age or Gender).
+However, its practical impact is minimal, so you should emphasize this in your report.
+
+Now fit the full model (model 1 with 3 features)
+```{r}
+# Fit the multiple linear regression model
+model_full <- lm(Sleep_Hours_Weekday ~ Age + Age_Squared + Gender_Male + Poverty_Index_Binary, data = data)
+
+# View the summary of the model
+summary(model_full)
+
+```
+
+# Simple model - Assumptions
+
+1. IID Assumption 
+Plot Residuals vs Fitted Values, residuals should show no patterns and should be randomly distributed. If we see patterns, the IID assumption may be violated
+```{r}
+# Plot Residuals vs Fitted
+plot(model_full, which = 1)  # Residuals vs Fitted
+
+```
+
+```{r}
+# Residual diagnostics
+plot(model_full, which = 1)  # Residuals vs Fitted
+plot(model_full, which = 2)  # Q-Q Plot
+```
+
+```{r}
+# Breusch-Pagan test for heteroskedasticity
+library(lmtest)
+bptest(model_full)
+```
+
+```{r}
+# Shapiro-Wilk test for normality of residuals
+shapiro.test(residuals(model_full))
+```
+
+
+```{r}
+# Check for multicollinearity using VIF
+install.packages("car")
+library(car)
+vif(model_full)
+```
+
+# Complex Model - Adding LTPA
+We will now plot the relationship for Total_Week_LTPA vs Sleep
+```{r}
+# Scatter plot for Total_Week_LTPA vs Sleep Hours
+library(ggplot2)
+ggplot(data, aes(x = Total_Week_LTPA, y = Sleep_Hours_Weekday)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  ggtitle("Total_Week_LTPA vs Sleep Hours") +
+  xlab("Total_Week_LTPA") +
+  ylab("Sleep Hours") +
+  theme_minimal()
+
+```
+Since Total_Week_LTPA is highly skewed, apply a log transformation to stabilize the variance and make patterns more interpretable.
+```{r}
+# Add a log-transformed version of Total_Week_LTPA (add 1 to avoid log(0))
+data$Log_Total_Week_LTPA <- log(data$Total_Week_LTPA + 1)
+
+# Scatter plot with log-transformed Total_Week_LTPA
+ggplot(data, aes(x = Log_Total_Week_LTPA, y = Sleep_Hours_Weekday)) +
+  geom_point(alpha = 0.5, color = "green") +
+  ggtitle("Log-Transformed Total_Week_LTPA vs Sleep Hours") +
+  xlab("Log_Total_Week_LTPA") +
+  ylab("Sleep Hours") +
+  theme_minimal()
+
+```
+
+```{r}
+# Fit the full model including Log_Total_Week_LTPA
+model_full_with_ltp <- lm(Sleep_Hours_Weekday ~ Age + Age_Squared + Gender_Male + 
+                          Poverty_Index_Binary + Log_Total_Week_LTPA, data = data)
+
+# View the model summary
+summary(model_full_with_ltp)
+
+```
+```{r}
+install.packages("stargazer")
+library(stargazer)
+stargazer(model_full_with_ltp, type = "text")
+
+```
+
+Model Fit:
+Adjusted R-squared: 0.02216
+The model explains only 2.2% of the variance in Sleep Hours. While statistically significant (p < 0.001), the model has very low explanatory power
+
+
+# ASSUMPTIONS for COMPLEX MODEL; 
+```{r}
+# Residual diagnostics
+plot(model_full_with_ltp, which = 1)  # Residuals vs Fitted
+plot(model_full_with_ltp, which = 2)  # Q-Q Plot
+```
+
+```{r}
+# Breusch-Pagan test for heteroskedasticity
+library(lmtest)
+bptest(model_full_with_ltp)
+```
+
+```{r}
+library(car)
+vif(model_full_with_ltp)
+```
+
